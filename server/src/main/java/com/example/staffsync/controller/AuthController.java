@@ -1,31 +1,50 @@
 package com.example.staffsync.controller;
 
 import com.example.staffsync.model.User;
-import com.example.staffsync.repository.UserRepository;
+import com.example.staffsync.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-@RestController
-@RequestMapping("/api/auth")
+@Controller
+@RequestMapping("/auth")
 public class AuthController {
+
     @Autowired
-    private UserRepository userRepository;
+    private AuthService authService;
+
+    @GetMapping("/register")
+    public String showRegisterForm() {
+        return "register"; // Matches "register.html" in templates
+    }
 
     @PostMapping("/register")
-    public String registerUser(@RequestBody User user) {
-        if (userRepository.findByUsername(user.getUsername()) != null) {
-            return "Username already taken!";
+    public String registerUser(@ModelAttribute User user, Model model) {
+        String message = authService.registerUser(user);
+        model.addAttribute("message", message);
+
+        // Redirect if successful registration, otherwise stay on the register page
+        if (message.equals("User registered successfully!")) {
+            return "redirect:/auth/login";
         }
-        userRepository.save(user);
-        return "User registered successfully!";
+        return "register";
+    }
+
+    @GetMapping("/login")
+    public String showLoginForm(Model model) {
+        model.addAttribute("user", new User());
+        return "login"; // Matches "login.html" in templates
     }
 
     @PostMapping("/login")
-    public String loginUser(@RequestBody User user) {
-        User existingUser = userRepository.findByUsername(user.getUsername());
-        if (existingUser != null && existingUser.getPassword().equals(user.getPassword())) {
-            return "Login successful!";
+    public String loginUser(@ModelAttribute User user, Model model) {
+        String message = authService.loginUser(user);
+        model.addAttribute("message", message);
+
+        if (message.equals("Login successful!")) {
+            return "home"; // Matches "home.html" in templates
         }
-        return "Invalid username or password!";
+        return "login";
     }
 }
